@@ -1,0 +1,24 @@
+﻿# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+
+# Node (اگه بعداً اضافه شد)
+node_modules/
+.next/
+out/
+dist/

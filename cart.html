@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cart — MedSupply</title>
+<meta name="description" content="Review your cart and checkout securely." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+
+<style>
+  .cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: var(--sp-6);
+    align-items: start;
+    margin-top: var(--sp-5);
+  }
+  @media (max-width: 900px) {
+    .cart-layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Cart table ---------- */
+  .cart-list {
+    background: #fff; border: 1px solid var(--color-border);
+    border-radius: var(--r-md); overflow: hidden;
+  }
+  .cart-row {
+    display: grid;
+    grid-template-columns: 96px 1fr auto auto auto;
+    gap: var(--sp-4);
+    align-items: center;
+    padding: var(--sp-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cart-row:last-child { border-bottom: 0; }
+  .cart-thumb {
+    width: 96px; height: 96px; border-radius: var(--r-sm);
+    overflow: hidden; background: var(--color-bg-soft);
+    border: 1px solid var(--color-border);
+  }
+  .cart-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .cart-name { font-weight: 600; font-size: var(--fs-md); margin: 0 0 4px; }
+  .cart-name a { color: var(--color-text); }
+  .cart-name a:hover { color: var(--color-primary); }
+  .cart-meta { font-size: var(--fs-xs); color: var(--color-muted); }
+  .cart-unit { font-size: var(--fs-sm); color: var(--color-muted); white-space: nowrap; }
+  .cart-total { font-weight: 700; color: var(--color-primary); font-size: var(--fs-lg); white-space: nowrap; min-width: 90px; text-align: right; }
+  .cart-remove {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    color: var(--color-muted); transition: all var(--transition);
+  }
+  .cart-remove:hover { color: var(--color-danger); background: #fdf3f2; }
+  .cart-qty {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--color-border); border-radius: var(--r-pill); overflow: hidden;
+  }
+  .cart-qty button {
+    width: 34px; height: 36px; font-weight: 700; color: var(--color-primary);
+    transition: background var(--transition);
+  }
+  .cart-qty button:hover { background: var(--color-bg-soft); }
+  .cart-qty input {
+    width: 40px; height: 36px; text-align: center; border: 0; outline: 0;
+    font-weight: 700; font-size: var(--fs-sm);
+  }
+  @media (max-width: 700px) {
+    .cart-row {
+      grid-template-columns: 72px 1fr;
+      grid-template-areas:
+        "thumb name"
+        "qty   qty"
+        "unit  total";
+      gap: var(--sp-2) var(--sp-3);
+      padding: var(--sp-3);
+    }
+    .cart-thumb { grid-area: thumb; width: 72px; height: 72px; }
+    .cart-info { grid-area: name; }
+    .cart-qty { grid-area: qty; justify-self: start; }
+    .cart-unit { grid-area: unit; }
+    .cart-total { grid-area: total; text-align: right; }
+    .cart-remove {
+      position: absolute; right: 8px; margin-top: -60px;
+    }
+    .cart-row { position: relative; }
+  }
+
+  /* ---------- Summary ---------- */
+  .summary {
+    background: #fff; border: 1px solid var(--color-border);
+    border-radius: var(--r-md); padding: var(--sp-5);
+    position: sticky; top: calc(var(--header-h) + 20px);
+  }
+  .summary h3 { margin-bottom: var(--sp-4); }
+  .summary-row {
+    display: flex; justify-content: space-between;
+    padding: var(--sp-2) 0; font-size: var(--fs-sm);
+  }
+  .summary-row.total {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--sp-3); padding-top: var(--sp-4);
+    font-size: var(--fs-lg); font-weight: 700;
+    color: var(--color-primary);
+  }
+  .summary hr {
+    border: 0; border-top: 1px solid var(--color-border); margin: var(--sp-4) 0;
+  }
+  .promo-row {
+    display: flex; gap: var(--sp-2); margin: var(--sp-3) 0;
+  }
+  .promo-row input {
+    flex: 1; padding: 10px 14px;
+    border: 1px solid var(--color-border); border-radius: var(--r-sm);
+    outline: none; font-size: var(--fs-sm);
+  }
+  .promo-row input:focus { border-color: var(--color-primary); }
+
+  /* ---------- Empty state ---------- */
+  .empty-cart {
+    text-align: center; padding: var(--sp-9) var(--sp-4);
+    background: #fff; border: 1px dashed var(--color-border);
+    border-radius: var(--r-md);
+  }
+  .empty-cart svg { color: var(--color-muted); margin-bottom: var(--sp-4); }
+
+  /* ---------- Checkout modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(15,28,46,0.55);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; padding: var(--sp-4);
+  }
+  .modal-backdrop.is-open { display: flex; }
+  .modal {
+    background: #fff; border-radius: var(--r-lg);
+    max-width: 520px; width: 100%; padding: var(--sp-6);
+    box-shadow: var(--shadow-lg); position: relative;
+    max-height: 90vh; overflow: auto;
+  }
+  .modal-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--color-muted);
+    transition: background var(--transition);
+  }
+  .modal-close:hover { background: var(--color-bg-soft); }
+  .form-row { margin-bottom: var(--sp-3); }
+  .form-row label {
+    display: block; font-size: var(--fs-sm); font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .form-row input, .form-row select {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--color-border); border-radius: var(--r-sm);
+    outline: none; transition: border-color var(--transition);
+    background: #fff;
+  }
+  .form-row input:focus, .form-row select:focus { border-color: var(--color-primary); }
+  .form-row .err { color: var(--color-danger); font-size: var(--fs-xs); margin-top: 4px; display: none; }
+  .form-row.invalid input, .form-row.invalid select { border-color: var(--color-danger); }
+  .form-row.invalid .err { display: block; }
+  .form-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header">
+  <div class="header-top">
+    <div class="container">
+      <span>📞 +1 (800) 555-0199 &nbsp;·&nbsp; ✉️ support@medsupply.com</span>
+      <span>Free shipping on orders over $150 · ISO · CE · FDA</span>
+    </div>
+  </div>
+  <div class="header-main">
+    <div class="container">
+      <a href="index.html" class="brand" aria-label="MedSupply home">
+        <span class="brand-mark" aria-hidden="true">M+</span>
+        <span>MedSupply</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="products.html">Shop</a>
+        <a href="products.html?cat=Diagnostic">Diagnostics</a>
+        <a href="products.html?cat=PPE">PPE</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <form class="header-search" role="search" aria-label="Search products">
+        <input type="search" placeholder="Search medical supplies…" aria-label="Search" />
+        <button type="submit">Search</button>
+      </form>
+      <div class="header-actions">
+        <a href="cart.html" class="icon-btn" aria-label="View cart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="cart-badge" style="display:none">0</span>
+        </a>
+        <button class="icon-btn nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="section">
+    <div class="container">
+      <span class="eyebrow">Your order</span>
+      <h1 style="margin-bottom: 4px;">Shopping cart</h1>
+      <p>Review your items and proceed to checkout.</p>
+
+      <div id="cartRoot" class="cart-layout">
+        <!-- JS fills this -->
+      </div>
+
+      <!-- Empty state -->
+      <div id="cartEmpty" class="empty-cart hidden">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        <h2>Your cart is empty</h2>
+        <p>Browse our catalog and add products to get started.</p>
+        <a href="products.html" class="btn btn--primary btn--lg mt-4">Shop products</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ CHECKOUT MODAL ============ -->
+<div class="modal-backdrop" id="checkoutModal" role="dialog" aria-modal="true" aria-labelledby="coTitle">
+  <div class="modal">
+    <button class="modal-close" id="coClose" aria-label="Close dialog">✕</button>
+    <h3 id="coTitle">Checkout</h3>
+    <p style="font-size: var(--fs-sm);">Enter your details to place the order.</p>
+
+    <form id="checkoutForm" novalidate>
+      <div class="form-row">
+        <label for="coName">Full name *</label>
+        <input type="text" id="coName" required />
+        <div class="err">Please enter your full name.</div>
+      </div>
+      <div class="form-row">
+        <label for="coEmail">Email *</label>
+        <input type="email" id="coEmail" required />
+        <div class="err">Please enter a valid email.</div>
+      </div>
+      <div class="form-row">
+        <label for="coPhone">Phone</label>
+        <input type="tel" id="coPhone" />
+      </div>
+      <div class="form-row">
+        <label for="coAddress">Shipping address *</label>
+        <input type="text" id="coAddress" required />
+        <div class="err">Please enter your address.</div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label for="coCity">City *</label>
+          <input type="text" id="coCity" required />
+          <div class="err">Required.</div>
+        </div>
+        <div class="form-row">
+          <label for="coZip">ZIP / Postal code *</label>
+          <input type="text" id="coZip" required />
+          <div class="err">Required.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="coPayment">Payment method *</label>
+        <select id="coPayment" required>
+          <option value="">Select…</option>
+          <option value="card">Credit / Debit card</option>
+          <option value="paypal">PayPal</option>
+          <option value="invoice">Invoice (net 30, for verified clinics)</option>
+        </select>
+        <div class="err">Please choose a payment method.</div>
+      </div>
+
+      <div style="background: var(--color-bg-soft); padding: var(--sp-3); border-radius: var(--r-sm); font-size: var(--fs-sm); margin: var(--sp-3) 0;">
+        <div style="display:flex; justify-content:space-between;">
+          <span>Order total:</span>
+          <strong id="coTotal">$0.00</strong>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block btn--lg">Place order</button>
+      <p style="font-size: var(--fs-xs); text-align:center; margin-top: var(--sp-3);">
+        This is a demo — no payment will be processed.
+      </p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="index.html" class="brand" style="color:#fff; margin-bottom: 12px;">
+          <span class="brand-mark" aria-hidden="true">M+</span>
+          <span>MedSupply</span>
+        </a>
+        <p style="color:#b6c4d1; font-size: 14px; margin-top: 12px;">
+          Certified medical equipment and supplies for clinics, hospitals, and home care.
+        </p>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <a href="products.html">All products</a>
+        <a href="products.html?cat=Diagnostic">Diagnostics</a>
+        <a href="products.html?cat=PPE">PPE</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="about.html">About us</a>
+        <a href="contact.html">Contact</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a href="faq.html">Shipping & returns</a>
+        <a href="contact.html">Talk to an expert</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 MedSupply. All rights reserved.</span>
+      <div class="pay-icons">
+        <span>VISA</span><span>Mastercard</span><span>PayPal</span><span>AmEx</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<button class="back-to-top" aria-label="Back to top">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script src="js/cart.js"></script>
+</body>
+</html>

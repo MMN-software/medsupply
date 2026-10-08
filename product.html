@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Product — MedSupply</title>
+<meta name="description" content="View product details, specifications, and reviews on MedSupply." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+
+<style>
+  /* ---------- Product detail layout ---------- */
+  .pd-layout {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: var(--sp-7);
+    align-items: start;
+    margin-top: var(--sp-5);
+  }
+  @media (max-width: 900px) {
+    .pd-layout { grid-template-columns: 1fr; gap: var(--sp-5); }
+  }
+
+  /* ---------- Gallery ---------- */
+  .pd-gallery { display: grid; gap: var(--sp-3); }
+  .pd-main-img {
+    aspect-ratio: 1 / 1; background: var(--color-bg-soft);
+    border: 1px solid var(--color-border); border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .pd-main-img img { width: 100%; height: 100%; object-fit: cover; }
+  .pd-thumbs { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+  .pd-thumb {
+    width: 76px; height: 76px; border-radius: var(--r-sm);
+    overflow: hidden; border: 2px solid var(--color-border);
+    cursor: pointer; background: var(--color-bg-soft);
+    transition: border-color var(--transition);
+  }
+  .pd-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .pd-thumb.active, .pd-thumb:hover { border-color: var(--color-primary); }
+
+  /* ---------- Info column ---------- */
+  .pd-cat { font-size: var(--fs-xs); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .pd-title { margin: var(--sp-2) 0 var(--sp-3); }
+  .pd-meta {
+    display: flex; gap: var(--sp-4); flex-wrap: wrap;
+    font-size: var(--fs-sm); color: var(--color-muted);
+    padding-bottom: var(--sp-4); margin-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .pd-price { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .pd-price .now { font-size: var(--fs-3xl); font-weight: 800; color: var(--color-primary); }
+  .pd-price .old { font-size: var(--fs-lg); color: var(--color-muted); text-decoration: line-through; }
+  .pd-price .save {
+    background: var(--color-danger); color: #fff; padding: 4px 10px;
+    border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700;
+  }
+  .pd-desc { color: var(--color-muted); margin-bottom: var(--sp-5); }
+  .pd-buy {
+    display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap;
+    margin-bottom: var(--sp-5);
+  }
+  .qty-input {
+    display: flex; align-items: center; border: 1px solid var(--color-border);
+    border-radius: var(--r-pill); overflow: hidden; background: #fff;
+  }
+  .qty-input button {
+    width: 42px; height: 46px; font-size: var(--fs-lg); font-weight: 700;
+    color: var(--color-primary); transition: background var(--transition);
+  }
+  .qty-input button:hover { background: var(--color-bg-soft); }
+  .qty-input input {
+    width: 52px; height: 46px; text-align: center; border: 0; outline: 0;
+    font-weight: 700; font-size: var(--fs-md);
+  }
+  .pd-stock {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--sp-4);
+  }
+  .pd-stock .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); }
+  .pd-stock.out .dot { background: var(--color-danger); }
+  .pd-stock.out { color: var(--color-danger); }
+  .pd-stock.in { color: var(--color-success); }
+
+  .pd-perks {
+    list-style: none; padding: 0; margin: var(--sp-5) 0 0;
+    display: grid; gap: var(--sp-3);
+    background: var(--color-bg-soft); border-radius: var(--r-md);
+    padding: var(--sp-4);
+  }
+  .pd-perks li { display: flex; gap: var(--sp-3); align-items: center; font-size: var(--fs-sm); }
+  .pd-perks svg { color: var(--color-accent); flex-shrink: 0; }
+
+  /* ---------- Tabs ---------- */
+  .pd-tabs { margin-top: var(--sp-8); }
+  .pd-tablist {
+    display: flex; gap: var(--sp-2); border-bottom: 1px solid var(--color-border);
+    overflow-x: auto;
+  }
+  .pd-tab {
+    padding: var(--sp-3) var(--sp-4);
+    font-weight: 600; font-size: var(--fs-sm); color: var(--color-muted);
+    border-bottom: 3px solid transparent; white-space: nowrap;
+  }
+  .pd-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+  .pd-panel { padding: var(--sp-5) 0; display: none; }
+  .pd-panel.active { display: block; }
+  .pd-specs { width: 100%; border-collapse: collapse; }
+  .pd-specs th, .pd-specs td {
+    text-align: left; padding: var(--sp-3); border-bottom: 1px solid var(--color-border);
+    font-size: var(--fs-sm);
+  }
+  .pd-specs th { width: 40%; color: var(--color-muted); font-weight: 500; }
+
+  .pd-review {
+    border: 1px solid var(--color-border); border-radius: var(--r-md);
+    padding: var(--sp-4); margin-bottom: var(--sp-3);
+  }
+  .pd-review .stars { color: #f5a623; }
+  .pd-review .who { font-weight: 600; font-size: var(--fs-sm); }
+  .pd-review .date { font-size: var(--fs-xs); color: var(--color-muted); }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(15,28,46,0.55);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; padding: var(--sp-4);
+  }
+  .modal-backdrop.is-open { display: flex; }
+  .modal {
+    background: #fff; border-radius: var(--r-lg);
+    max-width: 520px; width: 100%; padding: var(--sp-6);
+    box-shadow: var(--shadow-lg); position: relative;
+    max-height: 90vh; overflow: auto;
+  }
+  .modal-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--color-muted);
+    transition: background var(--transition);
+  }
+  .modal-close:hover { background: var(--color-bg-soft); }
+  .modal h3 { margin-bottom: var(--sp-2); }
+  .form-row { margin-bottom: var(--sp-3); }
+  .form-row label {
+    display: block; font-size: var(--fs-sm); font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .form-row input, .form-row textarea, .form-row select {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--color-border); border-radius: var(--r-sm);
+    outline: none; transition: border-color var(--transition);
+    background: #fff;
+  }
+  .form-row input:focus, .form-row textarea:focus, .form-row select:focus {
+    border-color: var(--color-primary);
+  }
+  .form-row .err { color: var(--color-danger); font-size: var(--fs-xs); margin-top: 4px; display: none; }
+  .form-row.invalid input, .form-row.invalid textarea { border-color: var(--color-danger); }
+  .form-row.invalid .err { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header">
+  <div class="header-top">
+    <div class="container">
+      <span>📞 +1 (800) 555-0199 &nbsp;·&nbsp; ✉️ support@medsupply.com</span>
+      <span>Free shipping on orders over $150 · ISO · CE · FDA</span>
+    </div>
+  </div>
+  <div class="header-main">
+    <div class="container">
+      <a href="index.html" class="brand" aria-label="MedSupply home">
+        <span class="brand-mark" aria-hidden="true">M+</span>
+        <span>MedSupply</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="products.html">Shop</a>
+        <a href="products.html?cat=Diagnostic">Diagnostics</a>
+        <a href="products.html?cat=PPE">PPE</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <form class="header-search" role="search" aria-label="Search products">
+        <input type="search" placeholder="Search medical supplies…" aria-label="Search" />
+        <button type="submit">Search</button>
+      </form>
+      <div class="header-actions">
+        <a href="cart.html" class="icon-btn" aria-label="View cart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="cart-badge" style="display:none">0</span>
+        </a>
+        <button class="icon-btn nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="section">
+    <div class="container">
+
+      <!-- Breadcrumb -->
+      <nav aria-label="Breadcrumb" style="font-size: var(--fs-sm); color: var(--color-muted);">
+        <a href="index.html">Home</a>
+        <span> / </span>
+        <a href="products.html">Shop</a>
+        <span> / </span>
+        <span id="crumbProduct" style="color: var(--color-text);">Product</span>
+      </nav>
+
+      <!-- Loading / Not-found states -->
+      <div id="pdLoading" style="padding: var(--sp-8) 0; text-align:center; color: var(--color-muted);">
+        Loading product…
+      </div>
+      <div id="pdNotFound" class="hidden" style="padding: var(--sp-8) 0; text-align:center;">
+        <h2>Product not found</h2>
+        <p>The product you're looking for doesn't exist or has been removed.</p>
+        <a href="products.html" class="btn btn--primary mt-4">Back to catalog</a>
+      </div>
+
+      <!-- Product detail wrapper (filled by JS) -->
+      <div id="pdRoot" class="hidden">
+
+        <div class="pd-layout">
+          <!-- Gallery -->
+          <div class="pd-gallery">
+            <div class="pd-main-img">
+              <img id="pdMainImg" src="" alt="" />
+            </div>
+            <div class="pd-thumbs" id="pdThumbs" role="list"></div>
+          </div>
+
+          <!-- Info -->
+          <div class="pd-info">
+            <span class="pd-cat" id="pdCategory"></span>
+            <h1 class="pd-title" id="pdTitle"></h1>
+
+            <div class="pd-meta">
+              <span>Brand: <strong id="pdBrand"></strong></span>
+              <span>SKU: <strong id="pdSku"></strong></span>
+              <span>★ <strong id="pdRating"></strong> (<span id="pdReviews"></span> reviews)</span>
+            </div>
+
+            <div class="pd-price">
+              <span class="now" id="pdPrice"></span>
+              <span class="old hidden" id="pdOldPrice"></span>
+              <span class="save hidden" id="pdSave"></span>
+            </div>
+
+            <p class="pd-desc" id="pdDesc"></p>
+
+            <div class="pd-stock in" id="pdStock">
+              <span class="dot"></span>
+              <span id="pdStockText"></span>
+            </div>
+
+            <div class="pd-buy">
+              <div class="qty-input">
+                <button type="button" id="qtyMinus" aria-label="Decrease quantity">−</button>
+                <input type="number" id="qtyValue" value="1" min="1" max="99" aria-label="Quantity" />
+                <button type="button" id="qtyPlus" aria-label="Increase quantity">+</button>
+              </div>
+              <button class="btn btn--primary btn--lg" id="pdAddToCart">Add to cart</button>
+              <button class="btn btn--ghost btn--lg" id="pdQuoteBtn">Request a quote</button>
+            </div>
+
+            <ul class="pd-perks">
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Free shipping on orders over $150
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Certified: ISO · CE · FDA
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 7v5l3 2"/></svg>
+                Same-day dispatch on in-stock items
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                30-day easy returns on unopened items
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="pd-tabs">
+          <div class="pd-tablist" role="tablist">
+            <button class="pd-tab active" role="tab" data-tab="desc" aria-selected="true">Description</button>
+            <button class="pd-tab" role="tab" data-tab="specs" aria-selected="false">Specifications</button>
+            <button class="pd-tab" role="tab" data-tab="reviews" aria-selected="false">Reviews</button>
+            <button class="pd-tab" role="tab" data-tab="shipping" aria-selected="false">Shipping & returns</button>
+          </div>
+
+          <div class="pd-panel active" data-panel="desc">
+            <p id="tabDesc"></p>
+          </div>
+
+          <div class="pd-panel" data-panel="specs">
+            <table class="pd-specs" id="tabSpecs"></table>
+          </div>
+
+          <div class="pd-panel" data-panel="reviews">
+            <div id="tabReviews"></div>
+          </div>
+
+          <div class="pd-panel" data-panel="shipping">
+            <h3>Shipping</h3>
+            <p>Orders placed before 3:00 PM (local time) ship the same business day. Standard delivery takes 2–4 business days. Express options are available at checkout.</p>
+            <h3>Returns</h3>
+            <p>Unopened items can be returned within 30 days of delivery. For hygiene reasons, opened PPE and wound care items cannot be returned. Bulk orders are subject to a dedicated return policy — please contact your account manager.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ QUOTE MODAL ============ -->
+<div class="modal-backdrop" id="quoteModal" role="dialog" aria-modal="true" aria-labelledby="quoteTitle">
+  <div class="modal">
+    <button class="modal-close" id="quoteClose" aria-label="Close dialog">✕</button>
+    <h3 id="quoteTitle">Request a bulk quote</h3>
+    <p style="font-size: var(--fs-sm);">We'll reply within 24 hours with pricing and availability.</p>
+
+    <form id="quoteForm" novalidate>
+      <div class="form-row">
+        <label for="qfName">Full name *</label>
+        <input type="text" id="qfName" name="name" required />
+        <div class="err">Please enter your name.</div>
+      </div>
+      <div class="form-row">
+        <label for="qfEmail">Email *</label>
+        <input type="email" id="qfEmail" name="email" required />
+        <div class="err">Please enter a valid email.</div>
+      </div>
+      <div class="form-row">
+        <label for="qfOrg">Organization</label>
+        <input type="text" id="qfOrg" name="organization" />
+      </div>
+      <div class="form-row">
+        <label for="qfQty">Quantity *</label>
+        <input type="number" id="qfQty" name="quantity" min="1" value="10" required />
+        <div class="err">Please enter a valid quantity.</div>
+      </div>
+      <div class="form-row">
+        <label for="qfNotes">Notes</label>
+        <textarea id="qfNotes" name="notes" rows="3" placeholder="Any specific requirements, deadlines, or product variants…"></textarea>
+      </div>
+      <input type="hidden" id="qfProduct" name="product" />
+      <button type="submit" class="btn btn--primary btn--block btn--lg">Send request</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="index.html" class="brand" style="color:#fff; margin-bottom: 12px;">
+          <span class="brand-mark" aria-hidden="true">M+</span>
+          <span>MedSupply</span>
+        </a>
+        <p style="color:#b6c4d1; font-size: 14px; margin-top: 12px;">
+          Certified medical equipment and supplies for clinics, hospitals, and home care.
+        </p>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <a href="products.html">All products</a>
+        <a href="products.html?cat=Diagnostic">Diagnostics</a>
+        <a href="products.html?cat=PPE">PPE</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="about.html">About us</a>
+        <a href="contact.html">Contact</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a href="faq.html">Shipping & returns</a>
+        <a href="contact.html">Talk to an expert</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 MedSupply. All rights reserved.</span>
+      <div class="pay-icons">
+        <span>VISA</span><span>Mastercard</span><span>PayPal</span><span>AmEx</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<button class="back-to-top" aria-label="Back to top">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script src="js/product.js"></script>
+</body>
+</html>
